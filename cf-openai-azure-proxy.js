@@ -1,35 +1,45 @@
 // The name of your Azure OpenAI Resource.
-const resourceName=RESOURCE_NAME
+const resourceName = RESOURCE_NAME.toLowerCase();
+const azureAuthKey = AZURE_AUTHKEY;
+const authedUsers = JSON.parse(atob(CHIT_USERS));
 
 // The deployment name you chose when you deployed the model.
 const mapper = {
-    'gpt-3.5-turbo': DEPLOY_NAME_GPT35,
-    'gpt-4': DEPLOY_NAME_GPT4
+  'gpt-3.5-turbo': DEPLOY_NAME_GPT35,
+  'gpt-3.5-turbo-0301': DEPLOY_NAME_GPT35,
+  'gpt-4': DEPLOY_NAME_GPT4,
+  'gpt-4-0314': DEPLOY_NAME_GPT4,
+  'gpt-4-32k': DEPLOY_NAME_GPT4,
+  'gpt-4-32k-0314': DEPLOY_NAME_GPT4,
+  'text-embedding-ada-002': DEPLOY_NAME_EMBEDDING,
 };
 
-const apiVersion="2023-05-15"
+const apiVersion = '2023-05-15';
 
-addEventListener("fetch", (event) => {
+addEventListener('fetch', (event) => {
   event.respondWith(handleRequest(event.request));
 });
 
 async function handleRequest(request) {
   if (request.method === 'OPTIONS') {
-    return handleOPTIONS(request)
+    return handleOPTIONS(request);
   }
 
   const url = new URL(request.url);
-  if (url.pathname.startsWith("//")) {
-    url.pathname = url.pathname.replace('/',"")
+  if (url.pathname.startsWith('//')) {
+    url.pathname = url.pathname.replace('/', '');
   }
+
   if (url.pathname === '/v1/chat/completions') {
-    var path="chat/completions"
+    var path = 'chat/completions';
   } else if (url.pathname === '/v1/completions') {
-    var path="completions"
+    var path = 'completions';
+  } else if (url.pathname === '/v1/embeddings') {
+    var path = 'embeddings';
   } else if (url.pathname === '/v1/models') {
-    return handleModels(request)
+    return handleModels(request);
   } else {
-    return new Response('404 Not Found', { status: 404 })
+    return new Response('404 Not Found', { status: 404 });
   }
 
   let body;
@@ -37,48 +47,61 @@ async function handleRequest(request) {
     body = await request.json();
   }
 
-  const modelName = body?.model;  
-  const deployName = mapper[modelName] || '' 
+  const modelName = body?.model;
+  const deployName = mapper[modelName] || '';
 
   if (deployName === '') {
     return new Response('Missing model mapper', {
-        status: 403
+      status: 403,
     });
   }
-  const fetchAPI = `https://${resourceName}.openai.azure.com/openai/deployments/${deployName}/${path}?api-version=${apiVersion}`
+  const fetchAPI = `https://${resourceName}.openai.azure.com/openai/deployments/${deployName}/${path}?api-version=${apiVersion}`;
 
-  const authKey = request.headers.get('Authorization');
+  let authKey = request.headers.get('Authorization');
   if (!authKey) {
-    return new Response("Not allowed", {
-      status: 403
+    return new Response('Not allowed for no key.', {
+      status: 403,
+    });
+  }
+
+  authKey = authKey.replace('Bearer ', '');
+  let matched = false;
+  for (const user_ of authedUsers) {
+    if (user_.key === authKey) {
+      matched = true;
+      break;
+    }
+  }
+  if (!matched) {
+    return new Response('Not allowed personal key.', {
+      status: 403,
     });
   }
 
   const payload = {
     method: request.method,
     headers: {
-      "Content-Type": "application/json",
-      "api-key": authKey.replace('Bearer ', ''),
+      'Content-Type': 'application/json',
+      'api-key': azureAuthKey,
     },
     body: typeof body === 'object' ? JSON.stringify(body) : '{}',
   };
 
   let response = await fetch(fetchAPI, payload);
   response = new Response(response.body, response);
-  response.headers.set("Access-Control-Allow-Origin", "*");
+  response.headers.set('Access-Control-Allow-Origin', '*');
 
-  if (body?.stream != true){
-    return response
-  } 
+  if (body?.stream != true) {
+    return response;
+  }
 
-  let { readable, writable } = new TransformStream()
+  let { readable, writable } = new TransformStream();
   stream(response.body, writable);
   return new Response(readable, response);
-
 }
 
 function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // support printer mode and add newline
@@ -89,12 +112,12 @@ async function stream(readable, writable) {
   // const decoder = new TextDecoder();
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
-// let decodedValue = decoder.decode(value);
-  const newline = "\n";
-  const delimiter = "\n\n"
+  // let decodedValue = decoder.decode(value);
+  const newline = '\n';
+  const delimiter = '\n\n';
   const encodedNewline = encoder.encode(newline);
 
-  let buffer = "";
+  let buffer = '';
   while (true) {
     let { value, done } = await reader.read();
     if (done) {
@@ -115,39 +138,41 @@ async function stream(readable, writable) {
   if (buffer) {
     await writer.write(encoder.encode(buffer));
   }
-  await writer.write(encodedNewline)
+  await writer.write(encodedNewline);
   await writer.close();
 }
 
 async function handleModels(request) {
   const data = {
-    "object": "list",
-    "data": []  
+    object: 'list',
+    data: [],
   };
 
   for (let key in mapper) {
     data.data.push({
-      "id": key,
-      "object": "model",
-      "created": 1677610602,
-      "owned_by": "openai",
-      "permission": [{
-        "id": "modelperm-M56FXnG1AsIr3SXq8BYPvXJA",
-        "object": "model_permission",
-        "created": 1679602088,
-        "allow_create_engine": false,
-        "allow_sampling": true,
-        "allow_logprobs": true,
-        "allow_search_indices": false,
-        "allow_view": true,
-        "allow_fine_tuning": false,
-        "organization": "*",
-        "group": null,
-        "is_blocking": false
-      }],
-      "root": key,
-      "parent": null
-    });  
+      id: key,
+      object: 'model',
+      created: 1677610602,
+      owned_by: 'openai',
+      permission: [
+        {
+          id: 'modelperm-M56FXnG1AsIr3SXq8BYPvXJA',
+          object: 'model_permission',
+          created: 1679602088,
+          allow_create_engine: false,
+          allow_sampling: true,
+          allow_logprobs: true,
+          allow_search_indices: false,
+          allow_view: true,
+          allow_fine_tuning: false,
+          organization: '*',
+          group: null,
+          is_blocking: false,
+        },
+      ],
+      root: key,
+      parent: null,
+    });
   }
 
   const json = JSON.stringify(data, null, 2);
@@ -157,12 +182,11 @@ async function handleModels(request) {
 }
 
 async function handleOPTIONS(request) {
-    return new Response(null, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': '*',
-        'Access-Control-Allow-Headers': '*'
-      }
-    })
+  return new Response(null, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': '*',
+      'Access-Control-Allow-Headers': '*',
+    },
+  });
 }
-
