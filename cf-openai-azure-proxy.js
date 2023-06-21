@@ -7,11 +7,16 @@ const authedUsers = JSON.parse(atob(CHIT_USERS));
 const mapper = {
   'gpt-3.5-turbo': DEPLOY_NAME_GPT35,
   'gpt-3.5-turbo-0301': DEPLOY_NAME_GPT35,
+  'gpt-3.5-turbo-0613': DEPLOY_NAME_GPT35,
+  'gpt-3.5-turbo-16k': DEPLOY_NAME_GPT35,
+  'gpt-3.5-turbo-16k-0613': DEPLOY_NAME_GPT35,
   'gpt-4': DEPLOY_NAME_GPT4,
   'gpt-4-0314': DEPLOY_NAME_GPT4,
+  'gpt-4-0613': DEPLOY_NAME_GPT4,
   'gpt-4-32k': DEPLOY_NAME_GPT4,
   'gpt-4-32k-0314': DEPLOY_NAME_GPT4,
   'text-embedding-ada-002': DEPLOY_NAME_EMBEDDING,
+  'whisper-1': DEPLOY_NAME_WHISPER,
 };
 
 const apiVersion = '2023-05-15';
@@ -36,6 +41,8 @@ async function handleRequest(request) {
     var path = 'completions';
   } else if (url.pathname === '/v1/embeddings') {
     var path = 'embeddings';
+  } else if (url.pathname === '/v1/audio/transcriptions') {
+    var path = 'audio/transcriptions';
   } else if (url.pathname === '/v1/models') {
     return handleModels(request);
   } else {
