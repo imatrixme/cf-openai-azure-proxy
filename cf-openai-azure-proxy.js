@@ -49,7 +49,7 @@ async function handleRequest(request) {
     return new Response('404 Not Found', { status: 404 });
   }
 
-  let body;
+  let body = {};
   if (request.method === 'POST') {
     body = await request.json();
   }
@@ -83,6 +83,40 @@ async function handleRequest(request) {
     return new Response('Not allowed personal key.', {
       status: 403,
     });
+  }
+
+  if (path === 'embeddings') {
+    let inputs = body?.input || [];
+    var dataset = [];
+    for (let i = 0; i < inputs.length; i++) {
+      const input = inputs[i];
+      const i_payload = {
+        method: request.method,
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': azureAuthKey,
+        },
+        body: JSON.stringify({ input }),
+      };
+
+      let i_response = await fetch(fetchAPI, i_payload);
+      let i_response_json = await i_response.json();
+      let i_response_data = i_response_json.data[0];
+      i_response_data.index = i;
+      dataset.push(i_response_data);
+    }
+    const response_body = {
+      object: 'list',
+      data: dataset,
+      model: modelName,
+      usage: {
+        prompt_tokens: 0,
+        total_tokens: 0,
+      },
+    };
+    let response = new Response(JSON.stringify(response_body));
+    response.headers.set('Access-Control-Allow-Origin', '*');
+    return response;
   }
 
   const payload = {
@@ -136,7 +170,7 @@ async function stream(readable, writable) {
     // Loop through all but the last line, which may be incomplete.
     for (let i = 0; i < lines.length - 1; i++) {
       await writer.write(encoder.encode(lines[i] + delimiter));
-      await sleep(20);
+      await sleep(10);
     }
 
     buffer = lines[lines.length - 1];
