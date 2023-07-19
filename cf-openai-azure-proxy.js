@@ -1,7 +1,6 @@
 // The name of your Azure OpenAI Resource.
 const resourceName = RESOURCE_NAME.toLowerCase();
 const azureAuthKey = AZURE_AUTHKEY;
-const azureApiVersion = AZURE_API_VERSION || '2023-05-15';
 const authedUsers = JSON.parse(atob(CHIT_USERS));
 
 // The deployment name you chose when you deployed the model.
@@ -20,7 +19,7 @@ const mapper = {
   'whisper-1': DEPLOY_NAME_WHISPER,
 };
 
-const apiVersion = azureApiVersion;
+const apiVersion = AZURE_API_VERSION || '2023-05-15';
 
 addEventListener('fetch', (event) => {
   event.respondWith(handleRequest(event.request));
