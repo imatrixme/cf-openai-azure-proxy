@@ -1,6 +1,7 @@
 // The name of your Azure OpenAI Resource.
 const resourceName = RESOURCE_NAME.toLowerCase();
 const azureAuthKey = AZURE_AUTHKEY;
+const azureApiVersion = AZURE_API_VERSION || '2023-05-15';
 const authedUsers = JSON.parse(atob(CHIT_USERS));
 
 // The deployment name you chose when you deployed the model.
@@ -8,8 +9,8 @@ const mapper = {
   'gpt-3.5-turbo': DEPLOY_NAME_GPT35,
   'gpt-3.5-turbo-0301': DEPLOY_NAME_GPT35,
   'gpt-3.5-turbo-0613': DEPLOY_NAME_GPT35,
-  'gpt-3.5-turbo-16k': DEPLOY_NAME_GPT35,
-  'gpt-3.5-turbo-16k-0613': DEPLOY_NAME_GPT35,
+  'gpt-3.5-turbo-16k': DEPLOY_NAME_GPT35_16K,
+  'gpt-3.5-turbo-16k-0613': DEPLOY_NAME_GPT35_16K,
   'gpt-4': DEPLOY_NAME_GPT4,
   'gpt-4-0314': DEPLOY_NAME_GPT4,
   'gpt-4-0613': DEPLOY_NAME_GPT4,
@@ -19,7 +20,7 @@ const mapper = {
   'whisper-1': DEPLOY_NAME_WHISPER,
 };
 
-const apiVersion = '2023-05-15';
+const apiVersion = azureApiVersion;
 
 addEventListener('fetch', (event) => {
   event.respondWith(handleRequest(event.request));
